@@ -2,6 +2,8 @@
 
 ### Enhancements
 
+- [VM] Show current operations and progress [#3811](https://github.com/vatesfr/xen-orchestra/issues/3811)
+
 ### Bug fixes
 
 ### Released packages
