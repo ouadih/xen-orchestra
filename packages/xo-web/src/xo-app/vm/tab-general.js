@@ -48,9 +48,13 @@ export default connectStore(() => {
 
   return {
     lastShutdownTime: createGetVmLastShutdownTime(),
-    tasks: createGetObjectsOfType('task').filter((_, { vm }) => task =>
-      task.status === 'pending' && task.$ref in vm.current_operations
-    ),
+    tasks: createGetObjectsOfType('task')
+      .filter((_, { vm }) => task =>
+        task.status === 'pending' &&
+        task.progress > 0 &&
+        task.$ref in vm.current_operations
+      )
+      .sort(),
     vgpu: getAttachedVgpu,
     vgpuTypes: getVgpuTypes,
   }
@@ -208,7 +212,7 @@ export default connectStore(() => {
           </h2>
         </Col>
       </Row>
-      {isEmpty(vm.current_operations) ? null : (
+      {isEmpty(tasks) ? null : (
         <Row className='text-xs-center'>
           <Col>
             <h4>{_('vmCurrentStatus')}</h4>
