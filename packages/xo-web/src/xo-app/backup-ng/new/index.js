@@ -1,16 +1,15 @@
 import _, { messages } from 'intl'
 import ActionButton from 'action-button'
-import SelectCompression from 'select-compression'
 import decorate from 'apply-decorators'
 import defined, { get } from '@xen-orchestra/defined'
 import Icon from 'icon'
 import Link from 'link'
-import moment from 'moment-timezone'
 import React from 'react'
 import Select from 'form/select'
+import SelectCompression from 'select-compression'
 import Tooltip from 'tooltip'
 import Upgrade from 'xoa-upgrade'
-import UserError from 'user-error'
+import { addSubscriptions, connectStore, resolveId, resolveIds } from 'utils'
 import { Card, CardBlock, CardHeader } from 'card'
 import { constructSmartPattern, destructSmartPattern } from 'smart-backup'
 import { Container, Col, Row } from 'grid'
@@ -20,17 +19,9 @@ import { form } from 'modal'
 import { generateId } from 'reaclette-utils'
 import { injectIntl } from 'react-intl'
 import { injectState, provideState } from 'reaclette'
-import { Map } from 'immutable'
 import { Number } from 'form'
 import { renderXoItemFromId, Remote } from 'render-xo-item'
 import { SelectRemote, SelectSr, SelectVm } from 'select-objects'
-import {
-  addSubscriptions,
-  connectStore,
-  generateRandomId,
-  resolveId,
-  resolveIds,
-} from 'utils'
 import {
   createBackupNgJob,
   createSchedule,
@@ -41,8 +32,7 @@ import {
   subscribeRemotes,
 } from 'xo'
 
-import NewSchedule from './new-schedule'
-import Schedules from './schedules'
+import Schedules from './_schedules'
 import SmartBackup from './smart-backup'
 import getSettingsWithNonDefaultValue from '../_getSettingsWithNonDefaultValue'
 import {
@@ -60,13 +50,32 @@ export NewMetadataBackup from './metadata'
 
 // ===================================================================
 
+// A retention can be:
+// - number: set by user
+// - undefined: will be replaced by the default value in the display(table + modal) and on submitting the form
 const DEFAULT_RETENTION = 1
-const DEFAULT_SCHEDULE = {
-  copyRetention: DEFAULT_RETENTION,
-  exportRetention: DEFAULT_RETENTION,
-  snapshotRetention: DEFAULT_RETENTION,
-  cron: '0 0 * * *',
-  timezone: moment.tz.guess(),
+const RETENTIONS = {
+  copyRetention: {
+    defaultValue: DEFAULT_RETENTION,
+    name: _('scheduleCopyRetention'),
+    valuePath: 'copyRetention',
+  },
+  exportRetention: {
+    defaultValue: DEFAULT_RETENTION,
+    name: _('scheduleExportRetention'),
+    valuePath: 'exportRetention',
+  },
+  snapshotRetention: {
+    defaultValue: DEFAULT_RETENTION,
+    name: _('snapshotRetention'),
+    valuePath: 'snapshotRetention',
+  },
+}
+
+const RETENTIONS_REQUIRED_MODE = {
+  copyRetention: 'copyMode',
+  exportRetention: 'exportMode',
+  snapshotRetention: 'snapshotMode',
 }
 
 const SR_BACKEND_FAILURE_LINK =
@@ -89,22 +98,15 @@ const ThinProvisionedTip = ({ label }) => (
 
 const normalizeTagValues = values => resolveIds(values).map(value => [value])
 
-const normalizeSettings = ({ settings, exportMode, copyMode, snapshotMode }) =>
-  settings.map(setting =>
-    defined(
-      setting.copyRetention,
-      setting.exportRetention,
-      setting.snapshotRetention
-    ) !== undefined
-      ? {
-          copyRetention: copyMode ? setting.copyRetention : undefined,
-          exportRetention: exportMode ? setting.exportRetention : undefined,
-          snapshotRetention: snapshotMode
-            ? setting.snapshotRetention
-            : undefined,
-        }
+const normalizeSettings = (settings, schedules, modes) => {
+  const predicate = (setting, id) =>
+    schedules[id] !== undefined
+      ? mapValues(setting, (value = DEFAULT_RETENTION, name) =>
+          modes[RETENTIONS_REQUIRED_MODE[name]] ? value : undefined
+        )
       : setting
-  )
+  return mapValues(settings, predicate)
+}
 
 const destructVmsPattern = pattern =>
   pattern.id === undefined
@@ -134,11 +136,13 @@ const getOptionRenderer = ({ label }) => <span>{_(label)}</span>
 
 const createDoesRetentionExist = name => {
   const predicate = setting => setting[name] > 0
-  return ({ propSettings, settings = propSettings }) => settings.some(predicate)
+  return ({ settings }) => some(settings, predicate)
 }
 
 const getInitialState = () => ({
   _displayAdvancedSettings: undefined,
+  _schedules: undefined,
+  _settings: undefined,
   _vmsPattern: undefined,
   backupMode: false,
   compression: undefined,
@@ -148,8 +152,6 @@ const getInitialState = () => ({
   name: '',
   paramsUpdated: false,
   remotes: [],
-  schedules: {},
-  settings: undefined,
   showErrors: false,
   smartMode: false,
   snapshotMode: false,
@@ -207,12 +209,11 @@ export default decorate([
             state.schedules,
             ({ id, ...schedule }) => schedule
           ),
-          settings: normalizeSettings({
-            settings: state.settings,
+          settings: normalizeSettings(state.settings, state.schedules, {
             exportMode: state.exportMode,
             copyMode: state.copyMode,
             snapshotMode: state.snapshotMode,
-          }).toObject(),
+          }),
           remotes:
             state.deltaMode || state.backupMode
               ? constructPattern(state.remotes)
@@ -234,63 +235,46 @@ export default decorate([
           }
         }
 
-        await Promise.all(
-          map(props.schedules, oldSchedule => {
-            const id = oldSchedule.id
-            const newSchedule = state.schedules[id]
-
-            if (newSchedule === undefined) {
+        const settings = { ...state.settings }
+        await Promise.all([
+          ...map(props.schedules, ({ id }) => {
+            const schedule = state.schedules[id]
+            if (schedule === undefined) {
               return deleteSchedule(id)
             }
 
-            if (
-              newSchedule.cron !== oldSchedule.cron ||
-              newSchedule.name !== oldSchedule.name ||
-              newSchedule.timezone !== oldSchedule.timezone ||
-              newSchedule.enabled !== oldSchedule.enabled
-            ) {
-              return editSchedule({
-                id,
-                cron: newSchedule.cron,
-                name: newSchedule.name,
-                timezone: newSchedule.timezone,
-                enabled: newSchedule.enabled,
-              })
-            }
-          })
-        )
-
-        let settings = state.settings
-        await Promise.all(
-          map(state.schedules, async schedule => {
-            const tmpId = schedule.id
-            if (props.schedules[tmpId] === undefined) {
+            return editSchedule({
+              id,
+              cron: schedule.cron,
+              name: schedule.name,
+              timezone: schedule.timezone,
+              enabled: schedule.enabled,
+            })
+          }),
+          ...map(state.schedules, async schedule => {
+            if (props.schedules[schedule.id] === undefined) {
               const { id } = await createSchedule(props.job.id, {
                 cron: schedule.cron,
                 name: schedule.name,
                 timezone: schedule.timezone,
                 enabled: schedule.enabled,
               })
-
-              settings = settings.withMutations(settings => {
-                settings.set(id, settings.get(tmpId))
-                settings.delete(tmpId)
-              })
+              settings[id] = settings[schedule.id]
+              delete settings[schedule.id]
             }
-          })
-        )
+          }),
+        ])
 
         await editBackupNgJob({
           id: props.job.id,
           name: state.name,
           mode: state.isDelta ? 'delta' : 'full',
           compression: state.compression,
-          settings: normalizeSettings({
-            settings: settings || state.propSettings,
+          settings: normalizeSettings(settings, state.schedules, {
             exportMode: state.exportMode,
             copyMode: state.copyMode,
             snapshotMode: state.snapshotMode,
-          }).toObject(),
+          }),
           remotes:
             state.deltaMode || state.backupMode
               ? constructPattern(state.remotes)
@@ -312,28 +296,30 @@ export default decorate([
         ...state,
         [name]: checked,
       }),
-      toggleScheduleState: (_, id) => state => ({
-        ...state,
-        schedules: {
-          ...state.schedules,
+      toggleScheduleState({ setSchedules }, id) {
+        const { schedules } = this.state
+        setSchedules({
+          ...schedules,
           [id]: {
-            ...state.schedules[id],
-            enabled: !state.schedules[id].enabled,
+            ...schedules[id],
+            enabled: !schedules[id].enabled,
           },
-        },
-      }),
+        })
+      },
       setName: (_, { target: { value } }) => state => ({
         ...state,
         name: value,
       }),
-      setTargetDeleteFirst: (_, id) => ({
-        propSettings,
-        settings = propSettings,
-      }) => ({
-        settings: settings.set(id, {
-          deleteFirst: !settings.getIn([id, 'deleteFirst']),
-        }),
-      }),
+      setTargetDeleteFirst({ setSettings }, id) {
+        const { settings } = this.state
+        setSettings({
+          ...settings,
+          [id]: {
+            ...settings[id],
+            deleteFirst: !get(() => settings[id].deleteFirst),
+          },
+        })
+      },
       addRemote: (_, remote) => state => {
         return {
           ...state,
@@ -380,91 +366,9 @@ export default decorate([
           crMode: job.mode === 'delta' && !isEmpty(srs),
           remotes,
           srs,
-          schedules,
           ...destructVmsPattern(job.vms),
         }
       },
-      showScheduleModal: (
-        { saveSchedule },
-        storedSchedule = DEFAULT_SCHEDULE
-      ) => async (
-        { copyMode, exportMode, snapshotMode },
-        { intl: { formatMessage } }
-      ) => {
-        const schedule = await form({
-          defaultValue: storedSchedule,
-          render: props => (
-            <NewSchedule
-              modes={{ copyMode, exportMode, snapshotMode }}
-              {...props}
-            />
-          ),
-          header: (
-            <span>
-              <Icon icon='schedule' /> {_('schedule')}
-            </span>
-          ),
-          size: 'large',
-          handler: value => {
-            if (
-              !(
-                (exportMode && value.exportRetention > 0) ||
-                (copyMode && value.copyRetention > 0) ||
-                (snapshotMode && value.snapshotRetention > 0)
-              )
-            ) {
-              throw new UserError(_('newScheduleError'), _('retentionNeeded'))
-            }
-            return value
-          },
-        })
-
-        saveSchedule({
-          ...schedule,
-          id: storedSchedule.id || generateRandomId(),
-        })
-      },
-      deleteSchedule: (_, schedule) => ({
-        schedules: oldSchedules,
-        propSettings,
-        settings = propSettings,
-      }) => {
-        const id = resolveId(schedule)
-        const schedules = { ...oldSchedules }
-        delete schedules[id]
-        return {
-          schedules,
-          settings: settings.delete(id),
-        }
-      },
-      saveSchedule: (
-        _,
-        {
-          copyRetention,
-          cron,
-          exportRetention,
-          id,
-          name,
-          snapshotRetention,
-          timezone,
-        }
-      ) => ({ propSettings, schedules, settings = propSettings }) => ({
-        schedules: {
-          ...schedules,
-          [id]: {
-            ...schedules[id],
-            cron,
-            id,
-            name,
-            timezone,
-          },
-        },
-        settings: settings.set(id, {
-          exportRetention,
-          copyRetention,
-          snapshotRetention,
-        }),
-      }),
       onVmsPatternChange: (_, _vmsPattern) => ({
         _vmsPattern,
       }),
@@ -493,15 +397,22 @@ export default decorate([
       toggleDisplayAdvancedSettings: () => ({ displayAdvancedSettings }) => ({
         _displayAdvancedSettings: !displayAdvancedSettings,
       }),
-      setGlobalSettings: (_, { name, value }) => ({
-        propSettings,
-        settings = propSettings,
-      }) => ({
-        settings: settings.update('', setting => ({
-          ...setting,
-          [name]: value,
-        })),
-      }),
+      setSchedules(_, schedules) {
+        this.state._schedules = schedules
+      },
+      setSettings(_, settings) {
+        this.state._settings = settings
+      },
+      setGlobalSettings({ setSettings }, { name, value }) {
+        const { settings } = this.state
+        setSettings({
+          ...settings,
+          '': {
+            ...settings[''],
+            [name]: value,
+          },
+        })
+      },
       setReportWhen: ({ setGlobalSettings }, { value }) => () => {
         setGlobalSettings({
           name: 'reportWhen',
@@ -580,6 +491,19 @@ export default decorate([
         state.snapshotMode && !state.snapshotRetentionExists,
       exportMode: state => state.backupMode || state.deltaMode,
       copyMode: state => state.drMode || state.crMode,
+      retentions: state => {
+        const retentions = []
+        if (state.copyMode) {
+          retentions.push(RETENTIONS.copyRetention)
+        }
+        if (state.exportMode) {
+          retentions.push(RETENTIONS.exportRetention)
+        }
+        if (state.snapshotMode) {
+          retentions.push(RETENTIONS.snapshotRetention)
+        }
+        return retentions
+      },
       exportRetentionExists: createDoesRetentionExist('exportRetention'),
       copyRetentionExists: createDoesRetentionExist('copyRetention'),
       snapshotRetentionExists: createDoesRetentionExist('snapshotRetention'),
@@ -599,29 +523,10 @@ export default decorate([
         ),
       srPredicate: ({ srs }) => sr => isSrWritable(sr) && !includes(srs, sr.id),
       remotePredicate: ({ remotes }) => ({ id }) => !includes(remotes, id),
-      propSettings: (_, { job }) =>
-        Map(get(() => job.settings)).map(setting =>
-          defined(
-            setting.copyRetention,
-            setting.exportRetention,
-            setting.snapshotRetention
-          )
-            ? {
-                copyRetention: defined(
-                  setting.copyRetention,
-                  DEFAULT_RETENTION
-                ),
-                exportRetention: defined(
-                  setting.exportRetention,
-                  DEFAULT_RETENTION
-                ),
-                snapshotRetention: defined(
-                  setting.snapshotRetention,
-                  DEFAULT_RETENTION
-                ),
-              }
-            : setting
-        ),
+      settings: ({ _settings }, { job }) =>
+        defined(_settings, () => job.settings, {}),
+      schedules: ({ _schedules }, { schedules }) =>
+        defined(_schedules, schedules, {}),
       displayAdvancedSettings: (state, props) =>
         defined(
           state._displayAdvancedSettings,
@@ -637,7 +542,6 @@ export default decorate([
   injectState,
   ({ state, effects, remotes, srsById, job = {}, intl }) => {
     const { formatMessage } = intl
-    const { propSettings, settings = propSettings } = state
     const compression = defined(state.compression, job.compression, '')
     const {
       concurrency,
@@ -645,7 +549,18 @@ export default decorate([
       offlineSnapshot,
       reportWhen = 'failure',
       timeout,
-    } = settings.get('') || {}
+    } = defined(() => state.settings[''], {})
+    const {
+      missingBackupMode,
+      missingCopyRetention,
+      missingExportRetention,
+      missingName,
+      missingRemotes,
+      missingSchedules,
+      missingSnapshotRetention,
+      missingSrs,
+      missingVms,
+    } = state.showErrors ? state : {}
 
     if (state.needUpdateParams) {
       effects.updateParams()
@@ -663,14 +578,14 @@ export default decorate([
                     component={Input}
                     message={_('missingBackupName')}
                     onChange={effects.setName}
-                    error={state.showErrors ? state.missingName : undefined}
+                    error={missingName}
                     value={state.name}
                   />
                 </CardBlock>
               </Card>
               <FormFeedback
                 component={Card}
-                error={state.showErrors ? state.missingBackupMode : undefined}
+                error={missingBackupMode}
                 message={_('missingBackupMode')}
               >
                 <CardBlock>
@@ -780,9 +695,7 @@ export default decorate([
                           message={_('missingRemotes')}
                           onChange={effects.addRemote}
                           predicate={state.remotePredicate}
-                          error={
-                            state.showErrors ? state.missingRemotes : undefined
-                          }
+                          error={missingRemotes}
                           value={null}
                         />
                         <br />
@@ -794,7 +707,9 @@ export default decorate([
                                 <DeleteOldBackupsFirst
                                   handler={effects.setTargetDeleteFirst}
                                   handlerParam={id}
-                                  value={settings.getIn([id, 'deleteFirst'])}
+                                  value={get(
+                                    () => state.settings[id].deleteFirst
+                                  )}
                                 />{' '}
                                 <ActionButton
                                   btnStyle='danger'
@@ -831,7 +746,7 @@ export default decorate([
                         message={_('missingSrs')}
                         onChange={effects.addSr}
                         predicate={state.srPredicate}
-                        error={state.showErrors ? state.missingSrs : undefined}
+                        error={missingSrs}
                         value={null}
                       />
                       <br />
@@ -848,7 +763,9 @@ export default decorate([
                               <DeleteOldBackupsFirst
                                 handler={effects.setTargetDeleteFirst}
                                 handlerParam={id}
-                                value={settings.getIn([id, 'deleteFirst'])}
+                                value={get(
+                                  () => state.settings[id].deleteFirst
+                                )}
                               />{' '}
                               <ActionButton
                                 btnStyle='danger'
@@ -1013,14 +930,26 @@ export default decorate([
                       message={_('missingVms')}
                       multi
                       onChange={effects.setVms}
-                      error={state.showErrors ? state.missingVms : undefined}
+                      error={missingVms}
                       value={state.vms}
                       predicate={state.vmPredicate}
                     />
                   )}
                 </CardBlock>
               </Card>
-              <Schedules />
+              <Schedules
+                handlerSchedules={effects.setSchedules}
+                handlerSettings={effects.setSettings}
+                missingRetentions={
+                  missingExportRetention ||
+                  missingCopyRetention ||
+                  missingSnapshotRetention
+                }
+                missingSchedules={missingSchedules}
+                retentions={state.retentions}
+                schedules={state.schedules}
+                settings={state.settings}
+              />
             </Col>
           </Row>
           <Row>
