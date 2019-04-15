@@ -5,6 +5,7 @@ import { Helmet, HelmetProvider } from 'react-helmet-async'
 
 const Bar = React.lazy(() => import('./Bar'))
 const Foo = React.lazy(() => import('./Foo'))
+const Visualization = React.lazy(() => import('./Visualization'))
 
 const Title = styled.h1`
   color: red;
@@ -34,6 +35,7 @@ export default () => (
       <React.Suspense fallback='loading'>
         <Route path='/' exact component={Bar} />
         <Route path='/foo' component={Foo} />
+        <Route path='/visualization' component={Visualization} />
       </React.Suspense>
     </HelmetProvider>
   </Router>
