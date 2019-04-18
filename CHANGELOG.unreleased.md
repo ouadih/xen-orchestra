@@ -2,6 +2,7 @@
 
 ### Enhancements
 
+-- [Metadata backup] Ability to set the backup report when (PR [#4149](https://github.com/vatesfr/xen-orchestra/pull/4149))
 ### Bug fixes
 
 ### Released packages
