@@ -8,9 +8,8 @@
 
 ### Released packages
 
-- vhd-lib v0.6.2
-- xo-vmdk-to-vhd v0.1.8
 - @xen-orchestra/fs v0.9.0
 - vhd-lib v0.7.0
+- xo-vmdk-to-vhd v0.1.8
 - xo-server v5.41.0
 - xo-web v5.41.0
