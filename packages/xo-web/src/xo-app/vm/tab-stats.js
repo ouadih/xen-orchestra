@@ -1,8 +1,9 @@
 import _ from 'intl'
 import Component from 'base-component'
+import contractStats from 'contract-stats'
 import Icon from 'icon'
 import React from 'react'
-import SelectGranularity from 'select-granularity'
+import SelectGranularity, { LAST_DAY, LAST_WEEK } from 'select-granularity'
 import Tooltip from 'tooltip'
 import { fetchVmStats } from 'xo'
 import { Toggle } from 'form'
@@ -34,23 +35,33 @@ export default class VmStats extends Component {
       cancelled = true
     }
 
-    fetchVmStats(vm, this.state.granularity).then(stats => {
-      if (cancelled) {
-        return
-      }
-      this.cancel = null
-
-      clearTimeout(this.timeout)
-      this.setState(
-        {
-          stats,
-          selectStatsLoading: false,
-        },
-        () => {
-          this.timeout = setTimeout(this.loop, stats.interval * 1000)
+    const { granularity } = this.state
+    const isLastDayGranularity = granularity === LAST_DAY
+    fetchVmStats(vm, isLastDayGranularity ? LAST_WEEK : granularity).then(
+      ({ stats, ...props }) => {
+        if (cancelled) {
+          return
         }
-      )
-    })
+        this.cancel = null
+
+        clearTimeout(this.timeout)
+        if (isLastDayGranularity) {
+          contractStats(stats, 24)
+        }
+        this.setState(
+          {
+            stats: {
+              stats,
+              ...props,
+            },
+            selectStatsLoading: false,
+          },
+          () => {
+            this.timeout = setTimeout(this.loop, props.interval * 1000)
+          }
+        )
+      }
+    )
   }
   loop = ::this.loop
 
@@ -155,5 +166,6 @@ export default class VmStats extends Component {
           </Col>
         </Row>
       </Container>
+    )
   }
 }

@@ -1,12 +1,13 @@
 import _ from 'intl'
 import Component from 'base-component'
+import contractStats from 'contract-stats'
 import Icon from 'icon'
 import React from 'react'
-import SelectGranularity from 'select-granularity'
+import SelectGranularity, { LAST_DAY, LAST_WEEK } from 'select-granularity'
 import Tooltip from 'tooltip'
 import { Container, Row, Col } from 'grid'
-import { Toggle } from 'form'
 import { fetchHostStats } from 'xo'
+import { Toggle } from 'form'
 import {
   CpuLineChart,
   MemoryLineChart,
@@ -34,23 +35,33 @@ export default class HostStats extends Component {
       cancelled = true
     }
 
-    fetchHostStats(host, this.state.granularity).then(stats => {
-      if (cancelled) {
-        return
-      }
-      this.cancel = null
-
-      clearTimeout(this.timeout)
-      this.setState(
-        {
-          stats,
-          selectStatsLoading: false,
-        },
-        () => {
-          this.timeout = setTimeout(this.loop, stats.interval * 1000)
+    const { granularity } = this.state
+    const isLastDayGranularity = granularity === LAST_DAY
+    fetchHostStats(host, isLastDayGranularity ? LAST_WEEK : granularity).then(
+      ({ stats, ...props }) => {
+        if (cancelled) {
+          return
         }
-      )
-    })
+        this.cancel = null
+
+        clearTimeout(this.timeout)
+        if (isLastDayGranularity) {
+          contractStats(stats, 24)
+        }
+        this.setState(
+          {
+            stats: {
+              stats,
+              ...props,
+            },
+            selectStatsLoading: false,
+          },
+          () => {
+            this.timeout = setTimeout(this.loop, props.interval * 1000)
+          }
+        )
+      }
+    )
   }
   loop = ::this.loop
 

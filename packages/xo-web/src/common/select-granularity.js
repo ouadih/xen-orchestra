@@ -4,6 +4,9 @@ import React from 'react'
 import _ from './intl'
 import Select from './form/select'
 
+export const LAST_DAY = 'lastDay'
+export const LAST_WEEK = 'hours'
+
 const OPTIONS = [
   {
     label: _('statLastTenMinutes'),
@@ -14,8 +17,12 @@ const OPTIONS = [
     value: 'minutes',
   },
   {
+    label: _('statLastDay'),
+    value: LAST_DAY,
+  },
+  {
     label: _('statLastWeek'),
-    value: 'hours',
+    value: LAST_WEEK,
   },
   {
     label: _('statLastYear'),

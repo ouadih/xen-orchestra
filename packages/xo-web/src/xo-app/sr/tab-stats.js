@@ -1,8 +1,9 @@
 import _ from 'intl'
 import Component from 'base-component'
+import contractStats from 'contract-stats'
 import Icon from 'icon'
 import React from 'react'
-import SelectGranularity from 'select-granularity'
+import SelectGranularity, { LAST_DAY, LAST_WEEK } from 'select-granularity'
 import Tooltip from 'tooltip'
 import { Container, Row, Col } from 'grid'
 import { fetchSrStats } from 'xo'
@@ -34,23 +35,33 @@ export default class SrStats extends Component {
       cancelled = true
     }
 
-    fetchSrStats(sr, this.state.granularity).then(data => {
-      if (cancelled) {
-        return
-      }
-      this.cancel = undefined
-
-      clearTimeout(this.timeout)
-      this.setState(
-        {
-          data,
-          selectStatsLoading: false,
-        },
-        () => {
-          this.timeout = setTimeout(this._loop, data.interval * 1e3)
+    const { granularity } = this.state
+    const isLastDayGranularity = granularity === LAST_DAY
+    fetchSrStats(sr, isLastDayGranularity ? LAST_WEEK : granularity).then(
+      ({ stats, ...props }) => {
+        if (cancelled) {
+          return
         }
-      )
-    })
+        this.cancel = undefined
+
+        clearTimeout(this.timeout)
+        if (isLastDayGranularity) {
+          contractStats(stats, 24)
+        }
+        this.setState(
+          {
+            data: {
+              stats,
+              ...props,
+            },
+            selectStatsLoading: false,
+          },
+          () => {
+            this.timeout = setTimeout(this._loop, props.interval * 1e3)
+          }
+        )
+      }
+    )
   }
 
   _loop = ::this._loop

@@ -1,8 +1,9 @@
 import _ from 'intl'
 import Component from 'base-component'
+import contractStats from 'contract-stats'
 import Icon from 'icon'
 import React from 'react'
-import SelectGranularity from 'select-granularity'
+import SelectGranularity, { LAST_DAY, LAST_WEEK } from 'select-granularity'
 import Tooltip from 'tooltip'
 import { connectStore } from 'utils'
 import { Container, Row, Col } from 'grid'
@@ -41,12 +42,22 @@ export default class PoolStats extends Component {
       cancelled = true
     }
 
+    const { granularity } = this.state
+    const isLastDayGranularity = granularity === LAST_DAY
     Promise.all(
       map(this.props.hosts, host =>
-        fetchHostStats(host, this.state.granularity).then(stats => ({
-          host: host.name_label,
-          ...stats,
-        }))
+        fetchHostStats(
+          host,
+          isLastDayGranularity ? LAST_WEEK : granularity
+        ).then(stats => {
+          if (isLastDayGranularity) {
+            contractStats(stats.stats, 24)
+          }
+          return {
+            host: host.name_label,
+            ...stats,
+          }
+        })
       )
     ).then(stats => {
       if (cancelled || !stats[0]) {
