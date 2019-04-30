@@ -2,7 +2,7 @@
 
 ### Enhancements
 
-- [Metadata backup] Ability to set the backup report when property (PR [#4149](https://github.com/vatesfr/xen-orchestra/pull/4149))
+- [Metadata backup] Ability to define when the backup report will be sent (PR [#4149](https://github.com/vatesfr/xen-orchestra/pull/4149))
 
 ### Bug fixes
 
