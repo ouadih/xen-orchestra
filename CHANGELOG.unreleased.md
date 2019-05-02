@@ -2,6 +2,8 @@
 
 ### Enhancements
 
+- [Backup NG] Improve new schedule form feedback [#3831](https://github.com/vatesfr/xen-orchestra/issues/3831) [#4098](https://github.com/vatesfr/xen-orchestra/issues/4098) (PR [#4131](https://github.com/vatesfr/xen-orchestra/pull/4131))
+
 ### Bug fixes
 
 ### Released packages
