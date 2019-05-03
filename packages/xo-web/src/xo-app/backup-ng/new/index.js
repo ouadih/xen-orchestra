@@ -32,7 +32,7 @@ import {
   subscribeRemotes,
 } from 'xo'
 
-import Schedules from './_schedules'
+import Schedules, { DEFAULT_SCHEDULE } from './_schedules'
 import SmartBackup from './smart-backup'
 import getSettingsWithNonDefaultValue from '../_getSettingsWithNonDefaultValue'
 import {
@@ -201,19 +201,40 @@ export default decorate([
           }
         }
 
+        let schedules, settings
+        if (!isEmpty(state.schedules)) {
+          schedules = mapValues(
+            state.schedules,
+            ({ id, ...schedule }) => schedule
+          )
+          settings = normalizeSettings(state.settings, state.schedules, {
+            exportMode: state.exportMode,
+            copyMode: state.copyMode,
+            snapshotMode: state.snapshotMode,
+          })
+        } else {
+          const id = generateId()
+          schedules = {
+            [id]: DEFAULT_SCHEDULE,
+          }
+          const setting = ((settings = {})[id] = {})
+          if (state.exportMode) {
+            setting.exportRetention = DEFAULT_RETENTION
+          }
+          if (state.copyMode) {
+            setting.copyRetention = DEFAULT_RETENTION
+          }
+          if (state.snapshotMode) {
+            setting.snapshotMode = DEFAULT_RETENTION
+          }
+        }
+
         await createBackupNgJob({
           name: state.name,
           mode: state.isDelta ? 'delta' : 'full',
           compression: state.compression,
-          schedules: mapValues(
-            state.schedules,
-            ({ id, ...schedule }) => schedule
-          ),
-          settings: normalizeSettings(state.settings, state.schedules, {
-            exportMode: state.exportMode,
-            copyMode: state.copyMode,
-            snapshotMode: state.snapshotMode,
-          }),
+          schedules,
+          settings,
           remotes:
             state.deltaMode || state.backupMode
               ? constructPattern(state.remotes)
@@ -482,13 +503,18 @@ export default decorate([
       missingRemotes: state =>
         (state.backupMode || state.deltaMode) && isEmpty(state.remotes),
       missingSrs: state => (state.drMode || state.crMode) && isEmpty(state.srs),
-      missingSchedules: state => isEmpty(state.schedules),
-      missingExportRetention: state =>
-        state.exportMode && !state.exportRetentionExists,
-      missingCopyRetention: state =>
-        state.copyMode && !state.copyRetentionExists,
-      missingSnapshotRetention: state =>
-        state.snapshotMode && !state.snapshotRetentionExists,
+      missingSchedules: (state, props) =>
+        props.schedules !== undefined && isEmpty(state.schedules),
+      missingExportRetention: (state, props) =>
+        props.job !== undefined &&
+        state.exportMode &&
+        !state.exportRetentionExists,
+      missingCopyRetention: (state, props) =>
+        props.job !== undefined && state.copyMode && !state.copyRetentionExists,
+      missingSnapshotRetention: (state, props) =>
+        props.job !== undefined &&
+        state.snapshotMode &&
+        !state.snapshotRetentionExists,
       exportMode: state => state.backupMode || state.deltaMode,
       copyMode: state => state.drMode || state.crMode,
       retentions: state => {

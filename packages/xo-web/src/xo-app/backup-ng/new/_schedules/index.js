@@ -18,7 +18,7 @@ import { FormFeedback } from '../../utils'
 
 import NewSchedule from './new'
 
-const DEFAULT_SCHEDULE = {
+export const DEFAULT_SCHEDULE = {
   cron: '0 0 * * *',
   timezone: moment.tz.guess(),
 }
