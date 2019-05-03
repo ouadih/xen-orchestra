@@ -3,6 +3,7 @@
 ### Enhancements
 
 - [Backup NG] Improve new schedule form feedback [#3831](https://github.com/vatesfr/xen-orchestra/issues/3831) [#4098](https://github.com/vatesfr/xen-orchestra/issues/4098) (PR [#4131](https://github.com/vatesfr/xen-orchestra/pull/4131))
+- [Backup NG] Ability to create a backup without specify schedules [#4036](https://github.com/vatesfr/xen-orchestra/issues/4036) (PR [#4183](https://github.com/vatesfr/xen-orchestra/pull/4183))
 
 ### Bug fixes
 
