@@ -9,14 +9,13 @@ import Select from 'form/select'
 import SelectCompression from 'select-compression'
 import Tooltip from 'tooltip'
 import Upgrade from 'xoa-upgrade'
-import { addSubscriptions, connectStore, resolveId, resolveIds } from 'utils'
+import { addSubscriptions, connectStore, resolveId } from 'utils'
 import { Card, CardBlock, CardHeader } from 'card'
-import { constructSmartPattern, destructSmartPattern } from 'smart-backup'
 import { Container, Col, Row } from 'grid'
 import { createGetObjectsOfType } from 'selectors'
-import { flatten, includes, isEmpty, map, mapValues, omit, some } from 'lodash'
 import { form } from 'modal'
 import { generateId } from 'reaclette-utils'
+import { includes, isEmpty, map, mapValues, omit, some } from 'lodash'
 import { injectIntl } from 'react-intl'
 import { injectState, provideState } from 'reaclette'
 import { Number } from 'form'
@@ -96,8 +95,6 @@ const ThinProvisionedTip = ({ label }) => (
   </Tooltip>
 )
 
-const normalizeTagValues = values => resolveIds(values).map(value => [value])
-
 const normalizeSettings = (settings, schedules, modes) => {
   const predicate = (setting, id) =>
     schedules[id] !== undefined
@@ -107,15 +104,6 @@ const normalizeSettings = (settings, schedules, modes) => {
       : setting
   return mapValues(settings, predicate)
 }
-
-const destructVmsPattern = pattern =>
-  pattern.id === undefined
-    ? {
-        tags: destructSmartPattern(pattern.tags, flatten),
-      }
-    : {
-        vms: destructPattern(pattern),
-      }
 
 const REPORT_WHEN_FILTER_OPTIONS = [
   {
@@ -156,9 +144,6 @@ const getInitialState = () => ({
   smartMode: false,
   snapshotMode: false,
   srs: [],
-  tags: {
-    notValues: ['Continuous Replication', 'Disaster Recovery', 'XOSAN'],
-  },
   vms: [],
 })
 
@@ -243,9 +228,7 @@ export default decorate([
             state.crMode || state.drMode
               ? constructPattern(state.srs)
               : undefined,
-          vms: state.smartMode
-            ? state.vmsSmartPattern
-            : constructPattern(state.vms),
+          vms: state.smartMode ? state.vmsPattern : constructPattern(state.vms),
         })
       },
       editJob: () => async (state, props) => {
@@ -304,9 +287,7 @@ export default decorate([
             state.crMode || state.drMode
               ? constructPattern(state.srs)
               : constructPattern([]),
-          vms: state.smartMode
-            ? state.vmsSmartPattern
-            : constructPattern(state.vms),
+          vms: state.smartMode ? state.vmsPattern : constructPattern(state.vms),
         })
       },
       toggleMode: (_, { mode }) => state => ({
@@ -372,11 +353,12 @@ export default decorate([
         const remotes =
           job.remotes !== undefined ? destructPattern(job.remotes) : []
         const srs = job.srs !== undefined ? destructPattern(job.srs) : []
+        const smartMode = job.vms.id === undefined
 
         return {
           name: job.name,
           paramsUpdated: true,
-          smartMode: job.vms.id === undefined,
+          smartMode,
           snapshotMode: some(
             job.settings,
             ({ snapshotRetention }) => snapshotRetention > 0
@@ -387,25 +369,11 @@ export default decorate([
           crMode: job.mode === 'delta' && !isEmpty(srs),
           remotes,
           srs,
-          ...destructVmsPattern(job.vms),
+          vms: !smartMode ? destructPattern(job.vms) : undefined,
         }
       },
       onVmsPatternChange: (_, _vmsPattern) => ({
         _vmsPattern,
-      }),
-      setTagValues: (_, values) => state => ({
-        ...state,
-        tags: {
-          ...state.tags,
-          values,
-        },
-      }),
-      setTagNotValues: (_, notValues) => state => ({
-        ...state,
-        tags: {
-          ...state.tags,
-          notValues,
-        },
       }),
       resetJob: ({ updateParams }) => (state, { job }) => {
         if (job !== undefined) {
@@ -535,10 +503,6 @@ export default decorate([
       snapshotRetentionExists: createDoesRetentionExist('snapshotRetention'),
       isDelta: state => state.deltaMode || state.crMode,
       isFull: state => state.backupMode || state.drMode,
-      vmsSmartPattern: ({ tags, vmsPattern }) => ({
-        ...vmsPattern,
-        tags: constructSmartPattern(tags, normalizeTagValues),
-      }),
       vmPredicate: ({ isDelta }, { hostsById, poolsById }) => ({
         $container,
       }) =>

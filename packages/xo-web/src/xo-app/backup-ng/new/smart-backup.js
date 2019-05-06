@@ -11,6 +11,7 @@ import SmartBackupPreview, {
 import Tooltip from 'tooltip'
 import { connectStore, resolveIds } from 'utils'
 import { createGetObjectsOfType } from 'selectors'
+import { flatten } from 'lodash'
 import { injectState, provideState } from 'reaclette'
 import { Select } from 'form'
 import { SelectPool, SelectTag } from 'select-objects'
@@ -22,6 +23,8 @@ const VMS_STATUSES_OPTIONS = [
   { value: 'Running', label: _('vmStateRunning') },
   { value: 'Halted', label: _('vmStateHalted') },
 ]
+
+const normalizeTagValues = values => resolveIds(values).map(value => [value])
 
 const SmartBackup = decorate([
   connectStore({
@@ -60,12 +63,41 @@ const SmartBackup = decorate([
       setPoolNotValues({ setPoolPattern }, notValues) {
         setPoolPattern({ notValues })
       },
+      setTagPattern({ setPattern }, pattern) {
+        const tags = this.state.tags
+        const { values = tags.values, notValues = tags.notValues } = pattern
+        setPattern({
+          tags: constructSmartPattern(
+            {
+              values,
+              notValues,
+            },
+            normalizeTagValues
+          ),
+        })
+      },
+      setTagValues({ setTagPattern }, values) {
+        setTagPattern({ values })
+      },
+      setTagNotValues({ setTagPattern }, notValues) {
+        setTagPattern({ notValues })
+      },
     },
     computed: {
       poolPredicate: (_, { deltaMode, hosts }) => pool =>
         !deltaMode || canDeltaBackup(get(() => hosts[pool.master].version)),
       pools: (_, { pattern }) =>
         pattern.$pool !== undefined ? destructSmartPattern(pattern.$pool) : {},
+      tags: (_, { pattern }) =>
+        pattern.tags !== undefined
+          ? destructSmartPattern(pattern.tags, flatten)
+          : {
+              notValues: [
+                'Continuous Replication',
+                'Disaster Recovery',
+                'XOSAN',
+              ],
+            },
     },
   }),
   injectState,
@@ -115,7 +147,7 @@ const SmartBackup = decorate([
         <SelectTag
           multi
           onChange={effects.setTagValues}
-          value={get(() => state.tags.values)}
+          value={state.tags.values}
         />
       </FormGroup>
       <FormGroup>
@@ -128,10 +160,10 @@ const SmartBackup = decorate([
         <SelectTag
           multi
           onChange={effects.setTagNotValues}
-          value={get(() => state.tags.notValues)}
+          value={state.tags.notValues}
         />
       </FormGroup>
-      <SmartBackupPreview vms={vms} pattern={state.vmsSmartPattern} />
+      <SmartBackupPreview vms={vms} pattern={pattern} />
     </div>
   ),
 ])
