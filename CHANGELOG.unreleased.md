@@ -2,6 +2,8 @@
 
 ### Enhancements
 
+- [VM] Improve invalid cores per socket feedback [#4120](https://github.com/vatesfr/xen-orchestra/issues/4120) (PR [#4187](https://github.com/vatesfr/xen-orchestra/pull/4187))
+
 ### Bug fixes
 
 - [Pool/Patches] Fix "an error has occurred" in "Applied patches" [#4192](https://github.com/vatesfr/xen-orchestra/issues/4192) (PR [#4193](https://github.com/vatesfr/xen-orchestra/pull/4193))
