@@ -10,6 +10,7 @@ import Link from 'link'
 import Page from '../page'
 import PropTypes from 'prop-types'
 import React from 'react'
+import SelectCoresPerSocket from 'select-cores-per-socket'
 import store from 'store'
 import Tags from 'tags'
 import Tooltip from 'tooltip'
@@ -80,7 +81,6 @@ import {
   buildTemplate,
   connectStore,
   formatSize,
-  getCoresPerSocketPossibilities,
   generateReadableRandomString,
   resolveIds,
 } from 'utils'
@@ -736,17 +736,6 @@ export default class NewVm extends BaseComponent {
     pool => vgpuType => pool !== undefined && pool.id === vgpuType.$pool
   )
 
-  _getCoresPerSocketPossibilities = createSelector(
-    () => {
-      const { pool } = this.props
-      if (pool !== undefined) {
-        return pool.cpus.cores
-      }
-    },
-    () => this.state.state.CPUs,
-    getCoresPerSocketPossibilities
-  )
-
   _isCoreOs = createSelector(
     () => this.state.template,
     template => template && template.name_label === 'CoreOS'
@@ -1081,31 +1070,17 @@ export default class NewVm extends BaseComponent {
               </Tooltip>
             )}
           </Item>
-          <Item label={_('vmCpuTopology')}>
-            <select
-              className='form-control'
-              onChange={this._linkState('coresPerSocket')}
-              value={coresPerSocket}
-            >
-              {_('vmChooseCoresPerSocket', message => (
-                <option value=''>{message}</option>
-              ))}
-              {map(this._getCoresPerSocketPossibilities(), coresPerSocket =>
-                _(
-                  'vmCoresPerSocket',
-                  {
-                    nSockets: CPUs / coresPerSocket,
-                    nCores: coresPerSocket,
-                  },
-                  message => (
-                    <option key={coresPerSocket} value={coresPerSocket}>
-                      {message}
-                    </option>
-                  )
-                )
-              )}
-            </select>
-          </Item>
+          {this.props.pool !== undefined && (
+            <Item label={_('vmCpuTopology')}>
+              <SelectCoresPerSocket
+                maxCores={this.props.pool.cpus.cores}
+                maxVCpus={get(() => template.CPUs.max)}
+                onChange={this._linkState('coresPerSocket')}
+                value={coresPerSocket}
+                vCpus={CPUs}
+              />
+            </Item>
+          )}
         </SectionContent>
       </Section>
     )
