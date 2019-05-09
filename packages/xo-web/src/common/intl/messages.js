@@ -1156,10 +1156,8 @@ const messages = {
   vmCoresPerSocket:
     '{nSockets, number} socket{nSockets, plural, one {} other {s}} with {nCores, number} core{nCores, plural, one {} other {s}} per socket',
   vmCoresPerSocketNone: 'None',
-  vmCoresPerSocketIncorrectValue:
+  vmCoresPerSocketInvalidValue:
     'nSockets * nCoresPerSocket should equal nVCpus',
-  vmCoresPerSocketIncorrectValueSolution:
-    'Please change the selected value to fix it.',
   vmHaDisabled: 'disabled',
   vmMemoryLimitsLabel: 'Memory limits (min/max)',
   vmMaxVcpus: 'vCPUs max:',

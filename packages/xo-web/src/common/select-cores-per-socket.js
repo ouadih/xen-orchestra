@@ -66,7 +66,7 @@ const SelectCoresPerSocket = decorate([
       />
       {state.invalidValue && (
         <span className='text-danger'>
-          <Icon icon='error' /> {_('vmCoresPerSocketIncorrectValue')}
+          <Icon icon='error' /> {_('vmCoresPerSocketInvalidValue')}
         </span>
       )}
     </span>
