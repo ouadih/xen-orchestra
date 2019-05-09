@@ -3,7 +3,7 @@ import defined from '@xen-orchestra/defined'
 import Icon from 'icon'
 import PropTypes from 'prop-types'
 import React from 'react'
-import { provideState, injectState } from 'reaclette'
+import { injectState, provideState } from 'reaclette'
 
 import decorate from './apply-decorators'
 import Select from './form/select'
