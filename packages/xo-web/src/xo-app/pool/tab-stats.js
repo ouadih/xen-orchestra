@@ -49,13 +49,13 @@ export default class PoolStats extends Component {
         fetchHostStats(
           host,
           isLastDayGranularity ? LAST_WEEK : granularity
-        ).then(stats => {
+        ).then(hostStats => {
           if (isLastDayGranularity) {
-            contractStats(stats.stats, 24)
+            contractStats(hostStats.stats, 24)
           }
           return {
             host: host.name_label,
-            ...stats,
+            ...hostStats,
           }
         })
       )
@@ -129,7 +129,7 @@ export default class PoolStats extends Component {
             <SelectGranularity
               onChange={this._handleSelectStats}
               value={granularity}
-	    />
+            />
           </Col>
         </Row>
         <Row>
