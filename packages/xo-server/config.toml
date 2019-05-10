@@ -75,6 +75,10 @@ secureOptions = 117440512
 
 [http.mounts]
 
+# List of proxied URLs (HTTP & WebSockets).
+[http.proxies]
+'/supportPanel' = 'https://xen-orchestra.com'
+
 [remoteOptions]
 mountsDir = '/run/xo-server/mounts'
 
