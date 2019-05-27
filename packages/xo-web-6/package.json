@@ -42,5 +42,9 @@
     "build": "cross-env NODE_ENV=production webpack",
     "start": "cross-env NODE_ENV=development webpack-dev-server --hot",
     "start:open": "npm run start -- --open"
+  },
+  "dependencies": {
+    "@types/dygraphs": "^1.1.8",
+    "dygraphs": "^2.1.0"
   }
 }
