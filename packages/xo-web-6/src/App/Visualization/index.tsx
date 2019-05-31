@@ -1,361 +1,380 @@
 
 import React, { Component } from 'react';
-
-//import data from './rrd_host_11.json';
-
-import Dygraph from 'dygraphs';
-
-
-/*  var globalData = [
-  
-   20070504,data.data[3].values[3],data.data[3].values[4],data.data[3].values[5],data.data[3].values[6]+
-   20080504,70,80,26,78+
-   20090504, 40,50,26,90+
-   20100504, 45,49,26,48,
-];  */
-
+import moment from 'moment';
+import { LineChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+import { Line, Label, ReferenceArea,PieChart, Pie, Sector, Legend,AreaChart, Area } from 'recharts';
+import dataJson from './dump.json';
 
 
 export default class Visualization extends Component<any, any> {
 
+  constructor(props: any) {
+    super(props);
+  }
 
-   constructor(props: Readonly<{}>) {
+  render() {
 
-      super(props);
-      console.log("constructor()");
-      console.log(props);
+    //Je recupere les 10 premiers données de cpu0 dans le tableau datay
+    var datay: any = [];
+    for (var i = 0; i < 10; i++) {
+      datay[i] = dataJson.stats.cpus[0][i];
+    }
 
-   }
+    //Je recupere les 10 premieres date dans datax
+    let som = 3600;
+    let datax: any = [];
+    for (var j = 0; j < 10; j++) {
+      var d4= moment(som);
+      var result = d4.format('LTS');
+      datax[j]=result;
+      som = som + 3600;
+    }
 
-   componentDidMount = () => {
-      //let localData = globalData;
+    //Je recupere les 10 premieres données de cpu1
+    var datacpu1: any = [];
+    for (var i = 0; i < 10; i++) {
+    datacpu1[i] = dataJson.stats.cpus[1][i];
+    }
 
-      var g = new Dygraph(
-         "testgraph",
-         //localData,
-         /*  "2007/05/04,75,70,26,78,79,80,60\n" +
-          "2008/05/04,70,80,26,78,70,10,20\n" +
-          "2009/05/04,40,50,26,90,79,80,60\n" +
-          "2010/05/04,45,49,26,48,79,44,60\n" +
-          "2011/05/04,70,60,40,63,79,44,60\n" +
-          "2012/05/04,45,19,26,48,79,44,60\n" */
-          "Date, cpu0,cpu1,cpu2,cpu3\n"+
-         "2019/04/11,0.071,0.0704,0.0699,0.0701\n" +
-         "2019/04/12,0.0789,0.0783,0.0779,0.0781\n" +
-         "2019/04/13,0.0943,0.0934,0.0929,0.0933\n" +
-         "2019/04/14,0.1002,0.0993,0.0991,0.0992\n",
+    //Je recupere les 10 premieres données de cpu2
+    var datacpu2: any = [];
+    for (var i = 0; i < 10; i++) {
+      datacpu2[i] = dataJson.stats.cpus[2][i];
+    }
 
-         {
+    //Je recupere les 10 premieres données de cpu3
+    var datacpu3: any = [];
+    for (var i = 0; i < 10; i++) {
+      datacpu3[i] = dataJson.stats.cpus[3][i];
+    }
 
-            labels: ['Date', 'cpu0','cpu1','cpu2','cpu3'],
-            title: "Usage CPU",
-            animatedZooms: true,
-            //legend: 'always',
-            hideOverlayOnMouseOut: true,
-            labelsShowZeroValues: true,
-            showLabelsOnHighlight: true,
-            showInRangeSelector: true,
+//je recupere les 10 premiere valeurs de load
+    var dataLoad: any = [];
+    for (var i = 0; i < 10; i++) {
+       dataLoad[i] = dataJson.stats.load[i];
+}
 
-            //logscale: true,
-            drawGapEdgePoints: true,
-            //drawAxis:true,
-            width: 680,
-            height: 300,
-            ylabel: 'pourcentage',
-            axes: {
-               y: {
-                  axisLabelFormatter: function (v) { return v + ' %' },
+//Je recupere les 10 premières valeurs de pifs: pifs:rx:0
+var dataPif0rx: any = [];
+for (var i = 0; i < 10; i++) {
+  dataPif0rx[i] = dataJson.stats.pifs.rx[0][i];
+}
 
-               }
-            },
-            xlabel: 'date',// Nom des axes ,
-            strokeWidth: 2,
-            strokeBorderWidth: 2,
-            includeZero: true,
-            drawGrid: false,
-            stackedGraph: false,
-            rightGap: 100,
-            connectSeparatedPoints: true,//if the series has a missing or null value
-            //labelsUTC:true,
-            highlightSeriesOpts: {
-               strokeWidth: 3,
-               strokeBorderWidth: 1,
-               highlightCircleSize: 5
-            },
-            drawPoints: true, pointSize: 2, highlightCircleSize: 3 // Affiche les points, taille des points, taille des points quand mouseover
-            //legend: 'always',labelsDivStyles: { 'textAl/gn': 'right' }, // Légende, positionnement (à droite)
-            //gridLineColor: "#ff0000", // Couleur du grid (ici rouge)
-            //drawXGrid: false,drawYGrid: false, // Affiche, Cache les grilles en arrière plan
-            //dateWindow: [ Date.parse("2012/07/20"), Date.parse("2012/07/26") ], // Déclare intervalle de l'axe des abscisses
-            //includeZero: true, ////Affiche le 0 de l'origine du graphique
-         }
-      );
-      var g2 = new Dygraph(
-         "testgraph2",
-         "Date, d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,d13\n"+
-         "2019/04/01,10,50,19,44,10,50,1,0,10,71,12,20,0\n" +
-         "2019/04/02,43,81,23,19,4,0.5,81,40,0.9,0.7,0.8,0.5,10\n" +
-         "2019/04/03,48,37,19,49,40,50,2,0.8,0.1,40,20,0.4,10\n" +
-         "2019/04/04,90,36,71,29,10,18,4,0,40,10,10,0.5,10\n" +
-         "2019/04/05,13,49,18,50,4,20,40,10,5,40,04,0,10\n" +
-         "2019/04/06,47,40,28,81,19,25,10,0,40,40,40,04,0\n" +
-         "2019/04/07,47,50,10,8,4,23,40,0,40,10,5,10,20\n" +
-         
-         "2019/04/08,40,51,9,18,40,23,10,10,0.4,0.8,8,10,20\n",
+//Je recupere les 10 premières valeurs de pifs: pifs:rx:1
+var dataPif1rx: any = [];
+for (var i = 0; i < 10; i++) {
+  dataPif1rx[i] = dataJson.stats.pifs.rx[1][i];
+}
 
-         {
+//Je recupere les 10 premières valeurs de pifs: pifs:rx:2
+var dataPif2rx: any = [];
+for (var i = 0; i < 10; i++) {
+  dataPif2rx[i] = dataJson.stats.pifs.rx[2][i];
+}
 
-            labels: ['Date', 'd1','d2','d3','d4','d5','d6','d7','d8','d9','d10','d11','d12','d13'],
-            //title: "testgraph2",
-            animatedZooms: true,
-            legend: 'always',
-            hideOverlayOnMouseOut: true,
-            labelsShowZeroValues: true,
-            showLabelsOnHighlight: true,
-            showInRangeSelector: true,
+//Je recupere les 10 premières valeurs de pifs: pifs:tx:0
+var dataPif0tx: any = [];
+for (var i = 0; i < 10; i++) {
+  dataPif0tx[i] = dataJson.stats.pifs.tx[0][i];
+}
 
-            //logscale: true,
-            drawGapEdgePoints: true,
-            //drawAxis:true,
-            width: 680,
-            height: 300,
-            ylabel: 'pourcentage',
-            axes: {
-               y: {
-                  axisLabelFormatter: function (v) { return v + ' %' },
-               }
-            },
-            xlabel: 'date',// Nom des axes ,
-            strokeWidth: 2,
-            strokeBorderWidth: 2,
-            includeZero: true,
-            drawGrid: false,
-            stackedGraph: false,
-            rightGap: 100,
+//Je recupere les 10 premières valeurs de pifs: pifs:tx:1
+var dataPif1tx: any = [];
+for (var i = 0; i < 10; i++) {
+  dataPif1tx[i] = dataJson.stats.pifs.tx[1][i];
+}
 
-            connectSeparatedPoints: true,//if the series has a missing or null value
-            //labelsUTC:true,
-            highlightSeriesOpts: {
-               strokeWidth: 3,
-               strokeBorderWidth: 1,
-               highlightCircleSize: 5
-            }
-            //drawPoints: true, pointSize: 2, highlightCircleSize: 3 // Affiche les points, taille des points, taille des points quand mouseover
-            //legend: 'always',labelsDivStyles: { 'textAl/gn': 'right' }, // Légende, positionnement (à droite)
-            //gridLineColor: "#ff0000", // Couleur du grid (ici rouge)
-            //drawXGrid: false,drawYGrid: false, // Affiche, Cache les grilles en arrière plan
-            //dateWindow: [ Date.parse("2012/07/20"), Date.parse("2012/07/26") ], // Déclare intervalle de l'axe des abscisses
-            //includeZero: true, ////Affiche le 0 de l'origine du graphique
-         }
-      );
-      var g3 = new Dygraph(
-         "testgraph3",
-         "Date, d1,d2,d3,d4\n"+
+//Je recupere les 10 premières valeurs de pifs: pifs:tx:2
+var dataPif2tx: any = [];
+for (var i = 0; i < 10; i++) {
+  dataPif2tx[i] = dataJson.stats.pifs.tx[2][i]; 
+  console.log(dataPif2tx);
+}
 
-         "2012/04/11,-0.071,40,-39,50\n" +
-         "2013/04/12,44,4,20,-20\n" +
-         "2014/04/13,94,34,0.0929,0.0933\n" +
-         "2015/04/14,44,4,20,-20\n" +
-         "2016/04/15,94,34,0.0929,0.0933\n" +
-         "2017/04/16,44,4,20,-20\n" +
-         "2018/04/17,94,34,0.0929,0.0933\n" +
-         "2019/04/18,0.1002,39,99,22\n",
-
-         {
-
-            labels: ['Date', 'd1','d2','d3','d4'],
-            title: "testgraph3",
-            animatedZooms: true,
-            legend: 'always',
-            hideOverlayOnMouseOut: true,
-            labelsShowZeroValues: true,
-            showLabelsOnHighlight: true,
-            showInRangeSelector: true,
-
-            //logscale: true,
-            drawGapEdgePoints: true,
-            //drawAxis:true,
-            width: 680,
-            height: 300,
-            ylabel: 'pourcentage',
-            axes: {
-               y: {
-                  axisLabelFormatter: function (v) { return v + ' %' },
-               }
-            },
-            xlabel: 'date',// Nom des axes ,
-            strokeWidth: 2,
-            strokeBorderWidth: 2,
-            includeZero: true,
-            drawGrid: false,
-            stackedGraph: false,
-            rightGap: 100,
-            connectSeparatedPoints: true,//if the series has a missing or null value
-            //labelsUTC:true,
-            highlightSeriesOpts: {
-               strokeWidth: 3,
-               strokeBorderWidth: 1,
-               highlightCircleSize: 5
-            },
-            drawPoints: true, pointSize: 2, highlightCircleSize: 3 // Affiche les points, taille des points, taille des points quand mouseover
-            //legend: 'always',labelsDivStyles: { 'textAl/gn': 'right' }, // Légende, positionnement (à droite)
-            //gridLineColor: "#ff0000", // Couleur du grid (ici rouge)
-            //drawXGrid: false,drawYGrid: false, // Affiche, Cache les grilles en arrière plan
-            //dateWindow: [ Date.parse("2012/07/20"), Date.parse("2012/07/26") ], // Déclare intervalle de l'axe des abscisses
-            //includeZero: true, ////Affiche le 0 de l'origine du graphique
-         }
-      );
-      var g4 = new Dygraph(
-         "testgraph4",
-         //localData,
-         "Date, load Average(IOPS)\n"+
-         "2019/04/11 ,0.1066\n" +
-         "2019/04/12 ,0.1129\n" +
-         "2019/04/13 ,0.1032\n" +
-         "2019/04/14 ,0.084\n" +
-         "2019/04/15 ,0.137\n",
-
-         {
-
-            labels: ['Date', 'load Average'],
-            title: "load Average",
-            titleHeight: 20,
-            animatedZooms: true,
-            legend: 'always',
-            hideOverlayOnMouseOut: true,
-            labelsShowZeroValues: true,
-            showLabelsOnHighlight: true,
-            showInRangeSelector: true,
-            drawGapEdgePoints: true,
-            //drawAxis:true,
-            width: 680,
-            height: 300,
-            ylabel: 'pourcentage',
-            axes: {
-               y: {
-                  axisLabelFormatter: function (v) { return v + '' },
-               }
-            },
-            xlabel: 'Date',// name x axis 
-            strokeWidth: 2,
-            strokeBorderWidth: 2,
-            includeZero: true,
-            drawGrid: false,
-            stackedGraph: false,
-            rightGap: 100,
-            connectSeparatedPoints: true,//if the series has a missing or null value
-            //labelsUTC:true,
-            highlightSeriesOpts: {
-               strokeWidth: 3,
-               strokeBorderWidth: 1,
-               highlightCircleSize: 5
-            },
-            //drawPoints: true, pointSize: 2, highlightCircleSize: 3 // Affiche les points, taille des points, taille des points quand mouseover
-            //legend: 'always',labelsDivStyles: { 'textAl/gn': 'right' }, // Légende, positionnement (à droite)
-            //gridLineColor: "#ff0000", // Couleur du grid (ici rouge)
-            //drawXGrid: false,drawYGrid: false, // Affiche, Cache les grilles en arrière plan
-            //dateWindow: [ Date.parse("2012/07/20"), Date.parse("2012/07/26") ], // Déclare intervalle de l'axe des abscisses
-            //includeZero: true, ////Affiche le 0 de l'origine du graphique
-         }
-      );
-      var g5 = new Dygraph(
-         "testgraph5",
-         //localData,
-         "Date, Iops(r),Iops(w)\n"+
-         "2019/04/11 ,0.1066,0.9\n" +
-         "2019/04/12 ,19,200\n" +
-         "2019/04/13 ,550,40\n" +
-         "2019/04/14 ,39,420\n" +
-         "2019/04/15 ,0.937,100\n",
-
-         {
-
-            labels: ['Date', 'Iops(r)','Iops(w)'],
-            title: "IOPS",
-            titleHeight: 20,
-            animatedZooms: true,
-            legend: 'always',
-            hideOverlayOnMouseOut: true,
-            labelsShowZeroValues: true,
-            showLabelsOnHighlight: true,
-            showInRangeSelector: true,
-            drawGapEdgePoints: true,
-            //drawAxis:true,
-            width: 680,
-            height: 300,
-            ylabel: 'pourcentage',
-            axes: {
-               y: {
-                  axisLabelFormatter: function (v) { return v + ' %' },
-               }
-            },
-            xlabel: 'Date',// name x axis 
-            strokeWidth: 2,
-            strokeBorderWidth: 2,
-            includeZero: true,
-            drawGrid: false,
-            stackedGraph: false,
-            rightGap: 100,
-            connectSeparatedPoints: true,//if the series has a missing or null value
-            //labelsUTC:true,
-            highlightSeriesOpts: {
-               strokeWidth: 3,
-               strokeBorderWidth: 1,
-               highlightCircleSize: 5
-            },
-            //drawPoints: true, pointSize: 2, highlightCircleSize: 3 // Affiche les points, taille des points, taille des points quand mouseover
-            //legend: 'always',labelsDivStyles: { 'textAl/gn': 'right' }, // Légende, positionnement (à droite)
-            //gridLineColor: "#ff0000", // Couleur du grid (ici rouge)
-            //drawXGrid: false,drawYGrid: false, // Affiche, Cache les grilles en arrière plan
-            //dateWindow: [ Date.parse("2012/07/20"), Date.parse("2012/07/26") ], // Déclare intervalle de l'axe des abscisses
-            //includeZero: true, ////Affiche le 0 de l'origine du graphique
-         }
-      );
-
-   }
-
-
-   render() {
-      //je recupere le dernier mot des legend
-      //J'affiche ici les cpu (average)
-      /*  for (var i = 3; i <= 6; i++) {
-        var result = data.meta.legend[i];
-        var mot = result.substring(result.lastIndexOf(":") + 1, result.length);
-        console.log(mot);
-     } */
-
-      //j affiche les dates au format timestamp 
-      /* for (var i = 3; i <= 6; i++) {      
-          console.log(data.data[i].t)
-      }
- */
-      //je recupere les valeurs de 3 a 6 correspondant aux cpu disponibles
-      /*  for (var i = 3; i <= 6; i++) {
-         for (var j = 3; j <= 6; j++) {
-            console.log(data.data[i].values[j]);
-         }
-      }  */
+//Je recupere les 10 premieres valeurs de iowait:a889b334
+var dataIowait_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIowait_host1[i] = dataJson.stats.iowait["a889b334"][i];
   
+}
 
-      return (
-         //<pre>{JSON.stringify(data, null, 2)}</pre>  <div id="testgraph"></div>
-         <div>
-            <div id="testgraph"></div>
-            <br />
-            <br />
-            <div id="testgraph2"></div>
-            <br />
-            <br />
-            <div id="testgraph3"></div>
-            <br />
-            <br />
-            <div id="testgraph4"></div>
-            <br />
-            <br />
-            <div id="testgraph5"></div>
-         </div>
-      )
-   }
+//Je recupere les 10 premieres valeurs de iowait:660c182f
+var dataIowait_host2: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIowait_host2[i] = dataJson.stats.iowait["660c182f"][i];
+}
 
+//Je recupere les 10 premieres valeurs de iowait:7cd1bf8b
+var dataIowait_host3: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIowait_host3[i] = dataJson.stats.iowait["7cd1bf8b"][i];
+}
+
+//Je recupere les 10 premieres valeurs de iowait:1e91e92d
+var dataIowait_host4: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIowait_host4[i] = dataJson.stats.iowait["1e91e92d"][i];
+}
+
+//Je recupere les 10 premieres valeurs de iowait:9a208896
+var dataIowait_host5: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIowait_host5[i] = dataJson.stats.iowait["9a208896"][i];
+}
+//Iops_w_host1
+
+ //Je recupere les 10 premieres valeurs de iops:w:a889b334
+  var dataIops_w_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIops_w_host1[i] = dataJson.stats.iops.w["a889b334"][i];
+}   
+
+//Je recupere les 10 premieres valeurs de iops:r:a889b334
+var dataIops_r_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIops_r_host1[i] = dataJson.stats.iops.r["a889b334"][i];
+}   
+
+//Je recupere les 10 premieres valeurs de ioTroughput:w:a889b334
+var dataIoTrought_w_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIoTrought_w_host1[i] = dataJson.stats.ioThroughput.w["a889b334"][i];
+}   
+
+//Je recupere les 10 premieres valeurs de ioTroughput:r:a889b334
+var dataIoTrought_r_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataIoTrought_r_host1[i] = dataJson.stats.ioThroughput.r["a889b334"][i];
+} 
+
+//Je recupere les 10 premieres valeurs de Latency:w:a889b334
+var dataLatency_w_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataLatency_w_host1[i] = dataJson.stats.latency.w["a889b334"][i];
+} 
+
+
+//Je recupere les 10 premieres valeurs de Latency:r:a889b334
+var dataLatency_r_host1: any = [];
+for (var i = 0; i < 10; i++) {
+  dataLatency_r_host1[i] = dataJson.stats.latency.r["a889b334"][i];
+} 
+
+    //Je rempli mon tableau data
+    var data: any = [];
+    for (var i = 0; i < 10; i++) {
+      data.push({ x: datax[i], cpu0: datay[i], cpu1: datacpu1[i], cpu2: datacpu2[i],
+      cpu3: datacpu3[i],dataLoad: dataLoad[i],Pif0_rx:dataPif0rx[i],
+       Pif1_rx:dataPif1rx[i], Pif2_rx:dataPif1rx[i],Pif0_tx:dataPif0tx[i], 
+       Pif1_tx:dataPif1tx[i], Pif2_tx:dataPif2tx[i], Iowait_host1:dataIowait_host1[i],
+       Iowait_host2:dataIowait_host2[i],Iowait_host3:dataIowait_host3[i],
+       Iowait_host4:dataIowait_host4[i],Iowait_host5:dataIowait_host5[i],
+       Iops_w_host1:dataIops_w_host1[i], Iops_r_host1:dataIops_r_host1[i],
+       IoTroughput_w_host1:dataIoTrought_w_host1[i],
+       IoTroughput_r_host1:dataIoTrought_r_host1[i],
+       Latency_w: dataLatency_w_host1[i],
+       Latency_r: dataLatency_r_host1[i]
+      });
+    }
+
+
+    return (
+      <div>
+      <div>
+        <div>
+                  Usage CPU
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label="%" />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="cpu0" stroke="#82ca9d" fill="#82ca9d" activeDot={{ r: 10 }} />
+          <Area type="monotone" dataKey="cpu1" stroke="#000000" fill="#000000"/>
+          <Area type="monotone" dataKey="cpu2" stroke="red" fill="red"/>
+          <Area type="monotone" dataKey="cpu3" stroke="pink" fill="pink"/>
+        </AreaChart>
+      </div>
+<br></br>
+<br></br>
+<div>
+        <div>
+                 Load average
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label="?" />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="dataLoad" stroke="#82ca9d" fill="#82ca9d" activeDot={{ r: 8 }} />
+        </AreaChart>
+      </div>
+<br></br>
+<br></br>
+      <div>
+        <div>
+                  Network throughtput
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label=" " />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="Pif0_rx" stroke="#82ca9d" fill="#82ca9d" activeDot={{ r: 8 }} />
+          <Area type="monotone" dataKey="Pif1_rx" stroke="#000000" fill="#000000" />
+          <Area type="monotone" dataKey="Pif2_rx" stroke="red" fill="red"/>
+          <Area type="monotone" dataKey="Pif0_tx" stroke="red" fill="red"/>
+          <Area type="monotone" dataKey="Pif1_tx" stroke="blue" fill="blue"/>
+          <Area type="monotone" dataKey="Pif2_tx" stroke="blue" fill="blue"/>
+        </AreaChart>
+      </div>
+      <br></br>
+      <br></br>
+      <div>
+        <div>
+                 Iowait
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label=" " />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="Iowait_host1" stroke="#000000" fill="#000000" activeDot={{ r: 8 }} />
+          <Area type="monotone" dataKey="Iowait_host2" stroke="#000000" fill="#000000"/>
+          <Area type="monotone" dataKey="Iowait_host3" stroke="blue" fill="blue"/>
+          <Area type="monotone" dataKey="Iowait_host4" stroke="green" fill="green"/>
+          <Area type="monotone" dataKey="Iowait_host5" stroke="red" fill="red"/>
+        </AreaChart>
+      </div>
+
+<br></br>
+<br></br>
+      <div>
+        <div>
+                 Iops
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label=" " />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="Iops_w_host1" stroke="#000000" fill="#000000" activeDot={{ r: 8 }} />
+          <Area type="monotone" dataKey="Iops_r_host1" stroke="red" fill="red" />
+          
+        </AreaChart>
+      </div>
+
+<br></br>
+<br></br>
+      <div>
+        <div>
+                 IoTroughput
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label=" " />
+          <Tooltip />
+          <Legend />
+          <Area type="monotone" dataKey="IoTroughput_w_host1" stroke="#000000" fill="#000000" activeDot={{ r: 8 }} />
+          <Area type="monotone" dataKey="IoTroughput_r_host1" stroke="blue" fill="blue" />
+          
+        </AreaChart>
+      </div>
+
+      <div>
+        <div>
+                Latency
+     </div>
+        <AreaChart
+          width={680}
+          height={300}
+          // data={global} 
+          data={data}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+
+        >
+          <CartesianGrid strokeDasharray="5 5" />
+
+          <XAxis dataKey="x" />
+          <YAxis label=" " />
+          <Tooltip />
+          <Legend />        
+          <Area type="monotone" dataKey="Latency_w" stroke="red" fill="red" activeDot={{ r: 8 }} />
+          <Area type="monotone" dataKey="Latency_r" stroke="#000000" fill="#000000" />        
+        </AreaChart>
+      </div>
+
+</div>
+
+    );
+  }
 
 }
