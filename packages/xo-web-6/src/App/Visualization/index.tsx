@@ -48,17 +48,16 @@ export default class Visualization extends Component<any, any> {
     //Host
     dataHostCpu: [],
     propertiesHostCpus: []
-
   }
 
   colors: AreaColor[] = [];
 
   componentDidMount() {
-
+    console.log('here')
+    console.log('did mount', this.state.propertiesHostCpus)
     setInterval(this.fetchVmStats.bind(this), 5e3);
     setInterval(this.fetchHostStats.bind(this), 5e3);
   }
-
 
   fetchVmStats = () => {
     xoCall('vm.stats', { id: '28851ef6-951c-08bc-a5be-8898e2a31b7a' }).then(
@@ -117,47 +116,47 @@ export default class Visualization extends Component<any, any> {
           data.push(tmpValue);
           dataXvds.push(tmpValueW);
           dataVifs.push(tmpValueTx);
-
         }
-
         this.setState({ data, dataMemory, dataXvds, dataVifs })
       }
     )
   }
 
 
-
   fetchHostStats = () => {
-    const propertiesHostCpus = this.state.propertiesHostCpus
-     xoCall('host.stats', { host: 'b54bf91f-51d7-4af5-b1b3-f14dcf1146ee' }).then(
-       ({ endTimestamp, stats: { cpus }, interval }) => {
- 
-     let start = endTimestamp - NB_VALUES * interval
-     this.state.propertiesHostCpu = Object.getOwnPropertyNames(cpus).filter(value => value !== 'length');
- 
-     const dataHostCpu: any[] = [];
- 
-     for (var i = 0; i < NB_VALUES; i++) {
- 
-       const tmpValueHost: any = {};
- 
-       tmpValueHost.time = moment(start += interval).format('LTS')
- 
-       propertiesHostCpus.forEach((property: string | number) => {
-         tmpValueHost[`cpu${property}`] = cpus[property][i];
-       })
- 
-       dataHostCpu.push(tmpValueHost);
-     }
-     this.setState( {dataHostCpu});
-   }
- )
+    // const propertiesHostCpus = this.state.propertiesHostCpus
+    xoCall('host.stats', { host: 'b54bf91f-51d7-4af5-b1b3-f14dcf1146ee' }).then(
+      ({ endTimestamp, stats: { cpus }, interval }) => {
+
+        let start = endTimestamp - NB_VALUES * interval
+        // this.state.propertiesHostCpu = Object.keys(cpus).filter(value => value !== 'length');
+        this.setState({ propertiesHostCpus: Object.keys(cpus) })
+
+        const dataHostCpu: any[] = [];
+
+        for (var i = 0; i < NB_VALUES; i++) {
+
+          const tmpValueHost: any = {};
+
+          tmpValueHost.time = moment(start += interval).format('LTS')
+
+          this.state.propertiesHostCpus.forEach((property: string | number) => {
+            tmpValueHost[`cpu${property}`] = cpus[property][i];
+          })
+
+          dataHostCpu.push(tmpValueHost);
+        }
+        this.setState({ dataHostCpu });
+      }
+    )
   }
 
   render() {
- 
+
+    console.log(this.state.propertiesHostCpu)
+
     const colors = ['#ADD83B', '#D83BB7'];
-  
+
     const allColors = ['#493BD8', '#ADD83B', '#D83BB7', '#3BC1D8', '#3BD8AB', '#667772', '#FA8072', '#800080']
 
     return (
@@ -306,7 +305,7 @@ export default class Visualization extends Component<any, any> {
             <Brush />
             <Legend />
             {
-              (this.state.propertiesHostCpu
+              (this.state.propertiesHostCpus
                 .map((currProperty: any) => `cpu${currProperty}`).map((property: any, index: any) => <Area connectNulls isAnimationActive={false} type="monotone" dataKey={property} stroke={allColors[index]} fill={allColors[index]} />))
             }
           </AreaChart>
